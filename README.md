@@ -1,14 +1,20 @@
-# React Bits MCP Demo
+# Diggy Nation Concept Showcase
 
-Public demo for [thegreishow](https://github.com/thegreishow).
+A redesign/staging concept for **DiggyNation.com / Mr. Lexx**, built inside the existing React Bits demo repository so ideas can be tested quickly before any production migration.
 
-This site copies three official React Bits Tailwind components into `src/components/` and uses them on the page.
+## Stack
 
-- `SpotlightCard` — cursor spotlight on a card
-- `Magnet` — element eases toward the pointer
-- `StarBorder` — animated star-edge button
+- React
+- Vite
+- Tailwind CSS
+- React Bits source components already copied into `src/components/`
+  - `SpotlightCard`
+  - `Magnet`
+  - `StarBorder`
 
-Source: [DavidHDev/react-bits](https://github.com/DavidHDev/react-bits) (`src/tailwind/` variants).
+## Current concept direction
+
+The demo reframes Diggy Nation as more than a merch storefront: fashion, Mr. Lexx, music, events, bookings and the ONE NATION community in one premium Dancehall-led experience.
 
 ## Run locally
 
@@ -17,12 +23,6 @@ npm install
 npm run dev
 ```
 
-GitHub Pages path is `/react-bits-mcp-demo/`.
+GitHub Pages base path remains `/react-bits-mcp-demo/`.
 
-## Add more components
-
-```bash
-npx shadcn@latest add https://reactbits.dev/r/SplitText-JS-TW
-```
-
-Or copy another file from `src/tailwind/` in the official repo.
+This repository is a showcase/staging environment, not the live DiggyNation.com production site.
