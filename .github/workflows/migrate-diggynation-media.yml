@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: diggynation-media-migration
+  cancel-in-progress: true
+
 jobs:
   migrate:
     runs-on: ubuntu-latest
@@ -24,6 +28,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Tune one-time crawl bounds
+        run: |
+          sed -i 's/MAX_PAGES = 220/MAX_PAGES = 120/' scripts/migrate_diggynation_media.py
+          sed -i 's/MAX_MEDIA = 1200/MAX_MEDIA = 700/' scripts/migrate_diggynation_media.py
+          sed -i 's/PAGE_DELAY = 0.08/PAGE_DELAY = 0.02/' scripts/migrate_diggynation_media.py
+          sed -i 's/MEDIA_DELAY = 0.03/MEDIA_DELAY = 0.01/' scripts/migrate_diggynation_media.py
+          sed -i 's/timeout=25/timeout=8/' scripts/migrate_diggynation_media.py
 
       - name: Crawl and download original media
         run: python scripts/migrate_diggynation_media.py
@@ -50,5 +62,6 @@ jobs:
             echo 'No media changes to commit.'
           else
             git commit -m 'Migrate original Diggy Nation media library'
+            git pull --rebase origin main
             git push origin main
           fi
