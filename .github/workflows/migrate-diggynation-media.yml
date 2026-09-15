@@ -1,0 +1,54 @@
+name: Migrate Diggy Nation Media
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/migrate_diggynation_media.py'
+      - '.github/workflows/migrate-diggynation-media.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Crawl and download original media
+        run: python scripts/migrate_diggynation_media.py
+
+      - name: Show migration summary
+        run: |
+          python - <<'PY'
+          import json
+          p='public/media/original/manifest.json'
+          d=json.load(open(p))
+          print('Pages crawled:', d['pages_crawled'])
+          print('Media candidates:', d['media_candidates'])
+          print('Media records:', d['media_records'])
+          print('Unique files:', d['unique_files'])
+          print('Errors:', len(d['errors']))
+          PY
+
+      - name: Commit migrated media
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/media/original
+          if git diff --cached --quiet; then
+            echo 'No media changes to commit.'
+          else
+            git commit -m 'Migrate original Diggy Nation media library'
+            git push origin main
+          fi
