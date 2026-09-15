@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
-  base: '/react-bits-mcp-demo/',
+  base: './',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.')
