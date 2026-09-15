@@ -61,8 +61,90 @@ function Reveal({ children, className = '', delay = 0 }) {
   return <div ref={ref} style={{ transitionDelay: `${delay}ms` }} className={`reveal ${visible ? 'is-visible' : ''} ${className}`}>{children}</div>;
 }
 
+function Icon({ type }) {
+  const common = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' };
+  if (type === 'play') return <svg {...common}><polygon points="6 3 20 12 6 21 6 3" /></svg>;
+  if (type === 'pause') return <svg {...common}><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>;
+  if (type === 'mail') return <svg {...common}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>;
+  if (type === 'phone') return <svg {...common}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.77.62 2.6a2 2 0 0 1-.45 2.11L8 9.72a16 16 0 0 0 6.28 6.28l1.29-1.28a2 2 0 0 1 2.11-.45c.83.29 1.7.5 2.6.62A2 2 0 0 1 22 16.92Z" /></svg>;
+  if (type === 'close') return <svg {...common}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>;
+  return <svg {...common}><path d="M7 17 17 7" /><path d="M7 7h10v10" /></svg>;
+}
+
+function ProductQuickView({ product, onClose }) {
+  useEffect(() => {
+    if (!product) return undefined;
+    const onKey = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.body.classList.add('modal-open');
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.classList.remove('modal-open');
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [product, onClose]);
+
+  if (!product) return null;
+
+  return (
+    <div className="modal-shell" role="dialog" aria-modal="true" aria-labelledby="quick-view-title">
+      <button className="modal-backdrop" type="button" aria-label="Close product quick view" onClick={onClose} />
+      <div className="quick-view-panel">
+        <button className="icon-btn modal-close" type="button" aria-label="Close" onClick={onClose}><Icon type="close" /></button>
+        <div className="quick-view-media"><img src={media(productImages[product.name])} alt={product.name} /></div>
+        <div className="quick-view-copy">
+          <p className="eyebrow">{product.category}</p>
+          <h2 id="quick-view-title">{product.name}</h2>
+          <p className="quick-view-price">{product.price}</p>
+          <p className="quick-view-description">{product.description}</p>
+          <div className="quick-view-details">
+            {(product.details?.length ? product.details : ['Original Diggy Nation archive piece', 'Contact for fit, sizing and color availability']).map((detail) => <span key={detail}>{detail}</span>)}
+          </div>
+          <div className="quick-view-actions">
+            <a href={`mailto:${siteMeta.email}?subject=${encodeURIComponent(`Diggy Nation inquiry: ${product.name}`)}`}><Icon type="mail" /> Ask about this piece</a>
+            <a href={`tel:${siteMeta.phone.replace(/[^+\d]/g,'')}`}><Icon type="phone" /> Call</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Lightbox({ image, onClose }) {
+  useEffect(() => {
+    if (!image) return undefined;
+    const onKey = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.body.classList.add('modal-open');
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.classList.remove('modal-open');
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [image, onClose]);
+
+  if (!image) return null;
+
+  return (
+    <div className="modal-shell" role="dialog" aria-modal="true" aria-label={image.alt}>
+      <button className="modal-backdrop" type="button" aria-label="Close image preview" onClick={onClose} />
+      <div className="lightbox-panel">
+        <button className="icon-btn modal-close" type="button" aria-label="Close" onClick={onClose}><Icon type="close" /></button>
+        <img src={media(image.src)} alt={image.alt} />
+        <div className="lightbox-caption">{image.alt}</div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('top');
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
+  const [lightboxImage, setLightboxImage] = useState(null);
+  const [playerOpen, setPlayerOpen] = useState(false);
   const productRail = useRef(null);
   const galleryRail = useRef(null);
 
@@ -72,20 +154,32 @@ function App() {
     return () => window.removeEventListener('resize', close);
   }, []);
 
+  useEffect(() => {
+    const ids = ['shop', 'about', 'mr-lexx', 'music', 'press', 'events', 'bookings'];
+    const nodes = ids.map((id) => document.getElementById(id)).filter(Boolean);
+    const observer = new IntersectionObserver((entries) => {
+      const current = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (current?.target?.id) setActiveSection(current.target.id);
+    }, { rootMargin: '-30% 0px -55% 0px', threshold: [0.05, 0.2, 0.4] });
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, []);
+
   const scrollRail = (ref, direction) => ref.current?.scrollBy({ left: direction * Math.min(ref.current.clientWidth * 0.82, 420), behavior: 'smooth' });
   const navHref = (item) => `#${item.toLowerCase().replaceAll(' ', '-').replace('.', '')}`;
+  const navId = (item) => navHref(item).slice(1);
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#070707] text-white">
       <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/72 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3 md:px-8">
           <a href="#top" aria-label="Diggy Nation home"><Wordmark compact /></a>
-          <nav className="hidden gap-5 text-[10px] uppercase tracking-[0.18em] text-white/65 lg:flex">
-            {nav.map((item) => <a key={item} href={navHref(item)} className="transition hover:text-white">{item}</a>)}
+          <nav className="hidden gap-5 text-[10px] uppercase tracking-[0.18em] text-white/65 lg:flex" aria-label="Primary navigation">
+            {nav.map((item) => <a key={item} href={navHref(item)} aria-current={activeSection === navId(item) ? 'page' : undefined} className={`nav-link ${activeSection === navId(item) ? 'active' : ''}`}>{item}</a>)}
           </nav>
           <div className="flex items-center gap-2">
             <a href="#bookings" className="hidden rounded-full border border-amber-300/35 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-amber-300 transition hover:bg-amber-300 hover:text-black sm:block">Book Mr. Lexx</a>
-            <button aria-label="Toggle menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)} className="grid h-10 w-10 place-items-center rounded-full border border-white/15 lg:hidden"><span className="sr-only">Menu</span><span className={`mobile-menu-lines ${menuOpen ? 'open' : ''}`}><i/><i/></span></button>
+            <button aria-label="Toggle menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)} className="icon-btn lg:hidden"><span className="sr-only">Menu</span><span className={`mobile-menu-lines ${menuOpen ? 'open' : ''}`}><i/><i/></span></button>
           </div>
         </div>
         <div className={`mobile-nav lg:hidden ${menuOpen ? 'open' : ''}`}>
@@ -126,7 +220,7 @@ function App() {
                 <SpotlightCard className="product-card group !min-h-[520px] !overflow-hidden !border-white/10 !bg-[#0d0d0d] !p-0" spotlightColor="rgba(245,181,45,.20)">
                   <div className="relative z-10 flex min-h-[518px] flex-col">
                     <div className="product-image-wrap relative h-80 overflow-hidden bg-[#111]"><img src={media(productImages[product.name])} alt={product.name} loading="lazy" className="image-reveal h-full w-full object-cover transition duration-700 group-hover:scale-105" /><div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#0d0d0d] to-transparent" /><div className="absolute left-4 top-4 rounded-full border border-white/15 bg-black/55 px-3 py-1 text-[10px] uppercase tracking-[.2em] backdrop-blur">0{i + 1} · {product.category}</div><div className="product-overlay absolute inset-0 flex items-end bg-gradient-to-t from-black via-black/45 to-transparent p-5"><div><div className="mb-2 text-[10px] uppercase tracking-[.25em] text-amber-300">Details</div>{product.details?.length ? <ul className="space-y-1 text-xs leading-5 text-white/75">{product.details.slice(0, 5).map((detail) => <li key={detail}>— {detail}</li>)}</ul> : <p className="text-xs leading-5 text-white/65">Original Diggy Nation archive piece.</p>}</div></div></div>
-                    <div className="flex flex-1 flex-col justify-between p-6"><div><h3 className="text-xl font-black uppercase leading-tight tracking-[-.025em]">{product.name}</h3><p className="mt-3 text-sm leading-6 text-white/45">{product.description}</p></div><div className="mt-5 flex items-center justify-between"><span className="text-xl font-black text-amber-300">{product.price}</span><span className="text-[10px] uppercase tracking-[.18em] text-white/35">Hover for details</span></div></div>
+                    <div className="flex flex-1 flex-col justify-between p-6"><div><h3 className="text-xl font-black uppercase leading-tight tracking-[-.025em]">{product.name}</h3><p className="mt-3 text-sm leading-6 text-white/45">{product.description}</p></div><div className="mt-5 flex items-center justify-between gap-4"><span className="text-xl font-black text-amber-300">{product.price}</span><button type="button" onClick={() => setQuickViewProduct(product)} className="quick-view-btn">Quick view</button></div></div>
                   </div>
                 </SpotlightCard>
               </div>
@@ -138,7 +232,7 @@ function App() {
 
         <section id="mr-lexx" className="mx-auto max-w-7xl px-5 py-24 md:px-8">
           <div className="grid gap-12 lg:grid-cols-2"><Reveal className="relative min-h-[620px] overflow-hidden rounded-[2rem] border border-white/10"><img src={media(lexxPortrait)} alt="Mr. Lexx portrait" loading="lazy" className="image-reveal absolute inset-0 h-full w-full object-cover object-top" /><div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent" /><div className="absolute inset-x-0 bottom-0 p-8"><div className="eyebrow">Artist · Actor · Dancer · Founder</div><div className="mt-2 text-5xl font-black uppercase tracking-[-.04em]">Mr. Lexx</div></div></Reveal><Reveal delay={120} className="flex flex-col justify-center"><p className="eyebrow">Meet Mr. Lexx</p><h2 className="section-title">{mrLexx.stageNames}</h2><p className="mt-7 text-lg leading-8 text-white/55">{mrLexx.name}, born {mrLexx.born}, is a Jamaican Dancehall artist from {mrLexx.origin}. {mrLexx.summary}</p><div className="mt-7 space-y-3 text-sm leading-6 text-white/45">{mrLexx.highlights.map((x) => <p key={x}>— {x}</p>)}</div></Reveal></div>
-          <div className="mt-10 flex items-center justify-between"><p className="text-[10px] uppercase tracking-[.24em] text-white/30">Archive gallery</p><div className="flex gap-2"><button onClick={() => scrollRail(galleryRail, -1)} className="rail-btn">←</button><button onClick={() => scrollRail(galleryRail, 1)} className="rail-btn">→</button></div></div><div ref={galleryRail} className="horizontal-rail mt-4 snap-x snap-mandatory">{galleryImages.map((img, i) => <div key={img} className="w-[62vw] max-w-[300px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10 sm:w-[260px]"><img src={media(img)} alt={`Mr. Lexx archive ${i + 1}`} loading="lazy" className="aspect-[4/5] w-full object-cover transition duration-700 hover:scale-105" /></div>)}</div>
+          <div className="mt-10 flex items-center justify-between"><p className="text-[10px] uppercase tracking-[.24em] text-white/30">Archive gallery</p><div className="flex gap-2"><button onClick={() => scrollRail(galleryRail, -1)} className="rail-btn">←</button><button onClick={() => scrollRail(galleryRail, 1)} className="rail-btn">→</button></div></div><div ref={galleryRail} className="horizontal-rail mt-4 snap-x snap-mandatory">{galleryImages.map((img, i) => <button type="button" key={img} onClick={() => setLightboxImage({ src: img, alt: `Mr. Lexx archive ${i + 1}` })} className="gallery-tile w-[62vw] max-w-[300px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10 sm:w-[260px]"><img src={media(img)} alt={`Mr. Lexx archive ${i + 1}`} loading="lazy" className="aspect-[4/5] w-full object-cover transition duration-700 hover:scale-105" /><span>Open</span></button>)}</div>
         </section>
 
         <section id="music" className="border-y border-white/10 bg-[#0b0b0b]"><div className="mx-auto max-w-7xl px-5 py-24 md:px-8"><Reveal className="mb-10 grid gap-8 lg:grid-cols-[.8fr_1.2fr]"><div><p className="eyebrow">Listen</p><h2 className="section-title">Mr. Lexx on repeat.</h2><p className="mt-5 max-w-md text-sm leading-7 text-white/45">Current releases, classics and the records that built the catalog — all in one place.</p></div><div className="grid gap-4 sm:grid-cols-3">{[['Latest release','Gyallis','2026'],['Catalog classic','Full Hundred','2000'],['Dancehall staple','Ring Mi Cellie','Archive']].map(([label,title,year]) => <div key={title} className="rounded-2xl border border-white/10 bg-white/[.025] p-5"><div className="text-[10px] uppercase tracking-[.22em] text-amber-300/70">{label}</div><div className="mt-3 text-2xl font-black uppercase">{title}</div><div className="mt-1 text-xs text-white/30">{year}</div></div>)}</div></Reveal><div className="grid gap-5 lg:grid-cols-2"><Reveal><div className="overflow-hidden rounded-[2rem] border border-white/10 bg-[#111] p-3"><iframe title="Mr. Lexx on Spotify" src="https://open.spotify.com/embed/artist/2spxqnHPH4K83fOY3Ei2me?utm_source=generator&theme=0" width="100%" height="352" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" className="rounded-[1.3rem] border-0" /></div></Reveal><Reveal delay={100}><div className="relative min-h-[376px] overflow-hidden rounded-[2rem] border border-white/10"><img src={media('media/mr-lexx/mr-lexx-gallery-20.jpg')} alt="Mr. Lexx music archive" loading="lazy" className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/10" /><div className="absolute inset-x-0 bottom-0 p-7"><p className="eyebrow">More music</p><h3 className="mt-2 text-4xl font-black uppercase tracking-[-.04em]">Apple Music + YouTube</h3><div className="mt-5 flex flex-wrap gap-3"><a href="https://music.apple.com/us/artist/mr-lexx/74446257" target="_blank" rel="noreferrer" className="platform-pill">Apple Music ↗</a><a href="https://www.youtube.com/@TheRealMrLexx" target="_blank" rel="noreferrer" className="platform-pill">YouTube ↗</a></div></div></div></Reveal></div></div></section>
@@ -147,7 +241,7 @@ function App() {
 
         <section id="events" className="mx-auto max-w-7xl px-5 py-24 md:px-8"><div className="grid gap-12 lg:grid-cols-[.8fr_1.2fr]"><Reveal><p className="eyebrow">Historical event archive</p><h2 className="section-title">On the road.</h2><div className="mt-8 overflow-hidden rounded-[2rem]"><img src={media('media/mr-lexx/mr-lexx-gallery-19.jpg')} alt="Mr. Lexx archive" loading="lazy" className="aspect-[4/5] w-full max-w-md object-cover transition duration-700 hover:scale-105" /></div></Reveal><div className="grid gap-3 md:grid-cols-2">{events.map((event, i) => <Reveal key={event} delay={Math.min(i * 25, 180)}><div className="rounded-2xl border border-white/10 bg-white/[.025] p-5 text-sm leading-6 text-white/55 transition hover:border-amber-300/30 hover:bg-amber-300/[.03]">{event}</div></Reveal>)}</div></div></section>
 
-        <section id="bookings" className="relative overflow-hidden border-y border-white/10 bg-[#0b0b0b]"><img src={media('media/mr-lexx/mr-lexx-gallery-21.jpg')} alt="Mr. Lexx performance" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-20" /><div className="absolute inset-0 bg-[linear-gradient(90deg,#0b0b0b_12%,rgba(11,11,11,.93)_48%,rgba(11,11,11,.8))]" /><div className="relative mx-auto grid max-w-7xl gap-10 px-5 py-24 md:px-8 lg:grid-cols-[1.1fr_.9fr]"><Reveal><p className="eyebrow">Bookings / EPK</p><h2 className="section-title max-w-4xl">Bring Mr. Lexx to the stage.</h2><p className="mt-6 max-w-2xl text-lg leading-8 text-white/60">Performance bookings, festival appearances, dubplates, media, brand collaborations and licensing inquiries.</p><div className="mt-8 flex flex-wrap gap-3">{['Live performance','Festival / club','Dubplates','Media / press','Brand collabs','Licensing'].map((x) => <span key={x} className="rounded-full border border-white/12 bg-black/30 px-4 py-2 text-xs uppercase tracking-[.14em] text-white/55">{x}</span>)}</div><div className="mt-9 flex flex-wrap gap-3"><a href={`mailto:${siteMeta.email}`} className="rounded-full bg-amber-300 px-6 py-3 text-xs font-black uppercase tracking-[.18em] text-black">Booking inquiry</a><a href={`tel:${siteMeta.phone.replace(/[^+\d]/g,'')}`} className="rounded-full border border-white/20 px-6 py-3 text-xs uppercase tracking-[.18em]">Call team</a></div></Reveal><Reveal delay={100}><div className="rounded-[2rem] border border-white/10 bg-black/45 p-7 backdrop-blur-xl"><div className="flex items-center justify-between border-b border-white/10 pb-5"><Wordmark compact/><span className="text-[10px] uppercase tracking-[.25em] text-white/30">Electronic Press Kit</span></div><div className="mt-6 grid grid-cols-2 gap-4 text-sm"><div><div className="text-[10px] uppercase tracking-[.2em] text-white/30">Artist</div><div className="mt-1 font-semibold">Mr. Lexx</div></div><div><div className="text-[10px] uppercase tracking-[.2em] text-white/30">Origin</div><div className="mt-1 font-semibold">East Kingston, Jamaica</div></div><div><div className="text-[10px] uppercase tracking-[.2em] text-white/30">Genre</div><div className="mt-1 font-semibold">Dancehall / Reggae</div></div><div><div className="text-[10px] uppercase tracking-[.2em] text-white/30">Brand</div><div className="mt-1 font-semibold">Diggy Nation</div></div></div><div className="mt-6 border-t border-white/10 pt-5"><div className="text-[10px] uppercase tracking-[.2em] text-white/30">Contact</div><div className="mt-2 text-sm leading-7 text-white/70">{siteMeta.email}<br/>{siteMeta.phone}<br/>{siteMeta.location}</div></div></div></Reveal></div></section>
+        <section id="bookings" className="relative overflow-hidden border-y border-white/10 bg-[#0b0b0b]"><img src={media('media/mr-lexx/mr-lexx-gallery-21.jpg')} alt="Mr. Lexx performance" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-20" /><div className="absolute inset-0 bg-[linear-gradient(90deg,#0b0b0b_12%,rgba(11,11,11,.93)_48%,rgba(11,11,11,.8))]" /><div className="relative mx-auto grid max-w-7xl gap-10 px-5 py-24 md:px-8 lg:grid-cols-[1.1fr_.9fr]"><Reveal><p className="eyebrow">Bookings / EPK</p><h2 className="section-title max-w-4xl">Bring Mr. Lexx to the stage.</h2><p className="mt-6 max-w-2xl text-lg leading-8 text-white/60">Performance bookings, festival appearances, dubplates, media, brand collaborations and licensing inquiries.</p><div className="booking-lanes mt-8">{['Live performance','Festival / club','Dubplates','Media / press','Brand collabs','Licensing'].map((x) => <span key={x}>{x}</span>)}</div><div className="booking-flow mt-8"><div><b>1</b><span>Tell us city, venue, date and audience.</span></div><div><b>2</b><span>Receive availability, rider notes and quote path.</span></div><div><b>3</b><span>Lock performance, press, brand or licensing lane.</span></div></div><div className="mt-9 flex flex-wrap gap-3"><a href={`mailto:${siteMeta.email}?subject=${encodeURIComponent('Mr. Lexx booking inquiry')}`} className="cta-btn"><Icon type="mail" /> Booking inquiry</a><a href={`tel:${siteMeta.phone.replace(/[^+\d]/g,'')}`} className="secondary-btn"><Icon type="phone" /> Call team</a></div></Reveal><Reveal delay={100}><div className="rounded-[2rem] border border-white/10 bg-black/45 p-7 backdrop-blur-xl"><div className="flex items-center justify-between border-b border-white/10 pb-5"><Wordmark compact/><span className="text-[10px] uppercase tracking-[.25em] text-white/30">Electronic Press Kit</span></div><div className="mt-6 grid grid-cols-2 gap-4 text-sm"><div><div className="text-[10px] uppercase tracking-[.2em] text-white/30">Artist</div><div className="mt-1 font-semibold">Mr. Lexx</div></div><div><div className="text-[10px] uppercase tracking-[.2em] text-white/30">Origin</div><div className="mt-1 font-semibold">East Kingston, Jamaica</div></div><div><div className="text-[10px] uppercase tracking-[.2em] text-white/30">Genre</div><div className="mt-1 font-semibold">Dancehall / Reggae</div></div><div><div className="text-[10px] uppercase tracking-[.2em] text-white/30">Brand</div><div className="mt-1 font-semibold">Diggy Nation</div></div></div><div className="mt-6 border-t border-white/10 pt-5"><div className="text-[10px] uppercase tracking-[.2em] text-white/30">Contact</div><div className="mt-2 text-sm leading-7 text-white/70">{siteMeta.email}<br/>{siteMeta.phone}<br/>{siteMeta.location}</div></div></div></Reveal></div></section>
 
         <section id="reviews" className="border-b border-white/10 bg-[#080808]"><div className="mx-auto max-w-7xl px-5 py-24 md:px-8"><Reveal className="flex flex-wrap items-end justify-between gap-6"><div><p className="eyebrow">Community feedback</p><h2 className="section-title">77 reviews.</h2></div><p className="max-w-lg text-sm leading-6 text-white/45">Selected feedback from the original Diggy Nation site.</p></Reveal><div className="mt-10 grid gap-5 md:grid-cols-3">{reviews.slice(0, 6).map(([name, date, quote], i) => <Reveal key={`${name}-${date}`} delay={Math.min(i * 45, 180)}><SpotlightCard className="!border-white/10 !bg-[#111] !p-6" spotlightColor="rgba(245,181,45,.14)"><div className="relative z-10"><p className="leading-7 text-white/65">“{quote}”</p><div className="mt-6 text-sm font-semibold">{name}</div><div className="mt-1 text-xs text-white/30">{date}</div></div></SpotlightCard></Reveal>)}</div></div></section>
 
@@ -155,6 +249,16 @@ function App() {
       </main>
 
       <footer id="contact" className="border-t border-white/10 px-5 py-14 md:px-8"><div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-2"><div><Wordmark compact/><p className="mt-5 text-sm leading-7 text-white/45">{siteMeta.location}<br/>{siteMeta.phone}<br/>{siteMeta.email}</p></div><div className="md:text-right"><p className="text-xs uppercase tracking-[.2em] text-white/40">Merchant policy</p><p className="mt-3 text-sm leading-7 text-white/45">{siteMeta.merchant.delivery} · {siteMeta.merchant.deliveryPrice}<br/>{siteMeta.merchant.customProcessing}<br/>{siteMeta.merchant.paymentNote}</p></div></div></footer>
+
+      <aside className={`sticky-player ${playerOpen ? 'open' : ''}`} aria-label="Sticky music player">
+        <button type="button" className="player-toggle" onClick={() => setPlayerOpen((v) => !v)} aria-expanded={playerOpen}><Icon type={playerOpen ? 'pause' : 'play'} /><span>{playerOpen ? 'Hide player' : 'Play music'}</span></button>
+        <div className="player-embed" aria-hidden={!playerOpen}>
+          <iframe title="Mr. Lexx compact Spotify player" src="https://open.spotify.com/embed/artist/2spxqnHPH4K83fOY3Ei2me?utm_source=generator&theme=0" width="100%" height="152" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" />
+        </div>
+      </aside>
+
+      <ProductQuickView product={quickViewProduct} onClose={() => setQuickViewProduct(null)} />
+      <Lightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />
     </div>
   );
 }
