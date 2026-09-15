@@ -1,0 +1,50 @@
+name: Sync Diggy Nation Media
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/sync-diggy-media.mjs'
+      - '.github/workflows/sync-diggy-media.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: diggy-media-sync
+  cancel-in-progress: false
+
+jobs:
+  sync-media:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Mirror original Diggy Nation media
+        run: node scripts/sync-diggy-media.mjs
+
+      - name: Summarize recovered media
+        run: |
+          node -e "const m=require('./public/media/manifest.json'); console.log(JSON.stringify({pages:m.pageCount,uniqueAssets:m.uniqueAssetCount,references:m.references,failures:m.failureCount},null,2))"
+          find public/media -type f | sort | head -200
+
+      - name: Commit mirrored media
+        run: |
+          if git diff --quiet -- public/media && [ -z "$(git ls-files --others --exclude-standard public/media)" ]; then
+            echo "No media changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/media
+          git commit -m "Mirror original Diggy Nation media library"
+          git push origin HEAD:main
