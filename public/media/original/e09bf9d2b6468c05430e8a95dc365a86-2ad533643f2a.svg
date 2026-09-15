@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024px" height="155px" viewBox="0 0 1024 155" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <g id="Classic-template-5" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Classic-5-Main-page" transform="translate(0.000000, -5396.000000)">
+            <g id="Send-Message" transform="translate(0.000000, 4738.000000)">
+                <g id="gradient" transform="translate(0.000000, 658.000000)">
+                    <path d="M522.170848,2.84217094e-14 C618.726982,2.84217094e-14 729.336699,51.5592262 854,154.677679 L90,154.677679 C281.557765,51.5592262 425.614714,2.84217094e-14 522.170848,2.84217094e-14 Z" id="Rectangle" fill-opacity="0.3" fill="#bb86fc" transform="translate(472.000000, 77.338839) scale(-1, 1) translate(-472.000000, -77.338839) "></path>
+                    <path d="M666.279141,4.98838369 C791.324245,-7.84568822 910.564531,4.08478467 1024,40.7798024 L1024,154.988384 L0,154.988384 C81.3730019,145.766302 149.436401,134.13467 204.190199,120.093488 C346.184178,83.6802433 530.391261,18.9353097 666.279141,4.98838369 Z" id="Rectangle" fill-opacity="0.3" fill="#bb86fc"></path>
+                    <path d="M422.170848,50 C518.726982,50 596.003366,70.5367513 654,111.610254 L654,154.677679 L0,154.677679 C184.891098,84.8925596 325.614714,50 422.170848,50 Z" id="Rectangle" fill-opacity="0.3" fill="#bb86fc" transform="translate(327.000000, 102.338839) scale(-1, 1) translate(-327.000000, -102.338839) "></path>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>
